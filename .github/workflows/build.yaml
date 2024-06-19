@@ -10,9 +10,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-        with:
+       # with:
           # 如果需要特定分支或tag，可以在这里指定
-          ref: ${{ github.ref }}
+        # ref: ${{ github.ref }}
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -35,10 +35,11 @@ jobs:
       - name: Build Debug APK
         working-directory: ${{ steps.get_project.outputs.PROJECT_NAME }}
         run: ./gradlew assembleDebug --stacktrace
-      - name: Upload APK
-      
-       # 打包上传生成的 APK 到的网页端
-        uses: actions/upload-artifact@v2
+
+      - name: Upload Debug APK as Artifact
+        if: ${{ always() }} # 即使构建失败也上传APK，便于调试
+        uses: actions/upload-artifact@v3
         with:
-          name: my-build-apk
-          path: ./**/*.apk
+          name: debug-apk
+          path: ${{ steps.get_project.outputs.PROJECT_NAME }}/app/build/outputs/apk/debug/*.apk
+          retention-days: 7 # 自定义保留天数，根据需要调整
