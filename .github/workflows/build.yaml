@@ -4,33 +4,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu
-    steps:
-      - name: Checkout the code
-      # 拉取 android_builder 的源代码
-        uses: actions/checkout@v2 
-      - name: Set up JDK
-      # 设置 Java 运行环境
-        uses: actions/setup-java@v2
-        with:
-          java-version: 11
+  build_and_upload_apk:
+    runs-on: ubuntu-latest
 
-      - id: get-project
-       # 读取项目地址
-        name: Get project name
-        run: echo "::set-output name=PROJECT::$(cat project-to-build)"
-      - name: Clone project
-       # 拉取项目源码到虚拟环境
-        run: git clone --depth=1 ${{ steps.get-project.outputs.PROJECT }} project
-      - name: Build the app
-       # 构建调试版 APK
-        working-directory: ./project
-        run: |
-          if [ ! -f "gradlew" ]; then gradle wrapper; fi
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          # 如果需要特定分支或tag，可以在这里指定
+          ref: ${{ github.ref }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17 # 更新到较新的LTS版本，可根据项目需求调整
+          cache: 'gradle'
+
+      - name: Retrieve Project Name
+        id: get_project
+        run: echo "::set-output name=PROJECT_NAME::$(cat project-to-build)"
+
+      - name: Clone Project Repository
+        run: git clone --depth=1 https://github.com/${{ github.repository }} ${{ steps.get_project.outputs.PROJECT_NAME }}
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        working-directory: ${{ steps.get_project.outputs.PROJECT_NAME }}
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        working-directory: ${{ steps.get_project.outputs.PROJECT_NAME }}
+        run: ./gradlew assembleDebug --stacktrace
       - name: Upload APK
+      
        # 打包上传生成的 APK 到的网页端
         uses: actions/upload-artifact@v2
         with:
